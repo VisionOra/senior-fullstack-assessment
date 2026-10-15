@@ -13,7 +13,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme } from "../theme";
-import { api, setToken } from "../api";
+import { api, Tokens } from "../api";
+import { startSession } from "../session";
 import { productArt } from "../components/assets";
 
 type Props = { onLoggedIn: (email: string) => void; onBack: () => void };
@@ -43,11 +44,11 @@ export default function LoginScreen({ onLoggedIn, onBack }: Props) {
     setBusy(true);
     setError(null);
     try {
-      const { token } = await api<{ token: string }>(`/auth/${mode}`, {
+      const tokens = await api<Tokens>(`/auth/${mode}`, {
         method: "POST",
         body: JSON.stringify({ email: trimmed, password }),
       });
-      setToken(token);
+      await startSession(tokens, trimmed);
       onLoggedIn(trimmed);
     } catch (e: any) {
       setError(e.message || "Could not reach the server. Try again.");
