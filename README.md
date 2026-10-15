@@ -48,6 +48,7 @@ cd backend
 cp .env.example .env
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python sync.py                     # pull products into Postgres (safe to re-run)
 uvicorn main:app --reload          # http://localhost:8000/health
 
 # app
