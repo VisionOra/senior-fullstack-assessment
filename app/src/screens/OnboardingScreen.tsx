@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import {
   View,
   Text,
+  Image,
   Pressable,
   FlatList,
   StyleSheet,
@@ -11,67 +12,20 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { theme, brand } from "../theme";
-import ProductTile from "../components/ProductTile";
-import { productArt } from "../components/assets";
+import Collage from "../components/Collage";
+import { categories, Category, productArt } from "../components/assets";
 
-type Props = { onDone: () => void };
+type Props = { onDone: (category: Category) => void };
 
-type Slide = { key: string; title: string; body: string; visual: (size: number) => React.ReactNode };
-
-const slides: Slide[] = [
-  {
-    key: "browse",
-    title: "Small drops,\nreal stock",
-    body: "Every item has a fixed number of units. What you see is what is left.",
-    visual: (s) => (
-      <View style={{ width: s, height: s }}>
-        <ProductTile source={productArt.palette} size={s * 0.42} rotate={-8} style={{ position: "absolute", left: 0, top: s * 0.12 }} />
-        <ProductTile source={productArt.sofa} size={s * 0.42} rotate={7} style={{ position: "absolute", right: 0, top: s * 0.04 }} />
-        <ProductTile source={productArt.perfume} size={s * 0.52} style={{ position: "absolute", left: s * 0.24, bottom: 0 }} />
-      </View>
-    ),
-  },
-  {
-    key: "pick",
-    title: "Pick up to two",
-    body: "Tap the items you want. Your picks are numbered so you always know what you are confirming.",
-    visual: (s) => (
-      <View style={{ width: s, height: s, alignItems: "center", justifyContent: "center" }}>
-        <View style={{ flexDirection: "row", gap: s * 0.06 }}>
-          {[productArt.lipstick, productArt.bloom].map((src, i) => (
-            <View key={i}>
-              <ProductTile source={src} size={s * 0.44} style={{ borderColor: theme.colors.accent, borderWidth: 2 }} />
-              <View style={styles.pickBadge}>
-                <Text style={styles.pickBadgeText}>{i + 1}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
-      </View>
-    ),
-  },
-  {
-    key: "confirm",
-    title: "Confirm before\nit is gone",
-    body: "Stock is shared with everyone. When the last unit goes, the item disappears from the shelf.",
-    visual: (s) => (
-      <View style={{ width: s, height: s, alignItems: "center", justifyContent: "center" }}>
-        <View style={[styles.ring, { width: s * 0.78, height: s * 0.78, borderRadius: s * 0.39 }]} />
-        <ProductTile source={productArt.perfume} size={s * 0.5} />
-        <View style={[styles.stockPill, { bottom: s * 0.1 }]}>
-          <Ionicons name="flash" size={14} color={theme.colors.backgroundDeep} />
-          <Text style={styles.stockPillText}>1 left</Text>
-        </View>
-      </View>
-    ),
-  },
-];
+const slides = ["shelf", "pick", "choose"] as const;
+type Slide = (typeof slides)[number];
 
 export default function OnboardingScreen({ onDone }: Props) {
   const { width, height } = useWindowDimensions();
   const listRef = useRef<FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
-  const visual = Math.min(width - theme.spacing.xl * 2, height * 0.38, 340);
+  const visualWidth = Math.min(width, 560);
+  const visualHeight = Math.min(height * 0.5, 470);
   const last = index === slides.length - 1;
 
   function onScroll(e: NativeSyntheticEvent<NativeScrollEvent>) {
@@ -79,136 +33,246 @@ export default function OnboardingScreen({ onDone }: Props) {
     if (next !== index) setIndex(next);
   }
 
-  function next() {
-    if (last) return onDone();
-    listRef.current?.scrollToIndex({ index: index + 1, animated: true });
+  function goTo(i: number) {
+    listRef.current?.scrollToOffset({ offset: i * width, animated: true });
+    setIndex(i);
+  }
+
+  function renderVisual(slide: Slide) {
+    if (slide === "shelf") return <Collage width={visualWidth} height={visualHeight} animated />;
+    if (slide === "pick") {
+      const card = Math.min(visualWidth * 0.36, 170);
+      return (
+        <View style={[styles.visualBox, { width: visualWidth, height: visualHeight }]}>
+          <View style={[styles.blob, { width: card * 2.6, height: card * 2.6, borderRadius: card * 1.3 }]} />
+          <View style={{ flexDirection: "row", gap: 16 }}>
+            {[productArt.lipstick, productArt.jadore].map((src, i) => (
+              <View key={i} style={{ transform: [{ rotate: i === 0 ? "-6deg" : "5deg" }, { translateY: i === 0 ? 0 : 24 }] }}>
+                <View style={[styles.pickCard, { width: card, height: card * 1.2 }]}>
+                  <Image source={src} style={styles.fill} resizeMode="contain" />
+                </View>
+                <View style={styles.pickBag}>
+                  <Text style={styles.pickBagText}>{i + 1}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      );
+    }
+    const size = Math.min(visualWidth * 0.5, 230);
+    return (
+      <View style={[styles.visualBox, { width: visualWidth, height: visualHeight }]}>
+        <View style={[styles.ring, { width: size * 1.55, height: size * 1.55, borderRadius: size }]} />
+        <View style={[styles.ring, styles.ringInner, { width: size * 1.2, height: size * 1.2, borderRadius: size }]} />
+        <View style={[styles.heroCard, { width: size, height: size * 1.15 }]}>
+          <Image source={productArt.perfume} style={styles.fill} resizeMode="contain" />
+        </View>
+        <View style={[styles.lastPill, { top: visualHeight / 2 + size * 0.48 }]}>
+          <Ionicons name="flash" size={14} color={theme.colors.accent} />
+          <Text style={styles.lastPillText}>Last unit</Text>
+        </View>
+      </View>
+    );
+  }
+
+  function renderCopy(slide: Slide) {
+    if (slide === "shelf")
+      return (
+        <>
+          <Text style={styles.title}>Small drops,{"\n"}real stock</Text>
+          <Text style={styles.body}>Every item has a fixed number of units. What you see is what is left.</Text>
+        </>
+      );
+    if (slide === "pick")
+      return (
+        <>
+          <Text style={styles.title}>Pick up to two</Text>
+          <Text style={styles.body}>Tap the bag on any item. Your picks are numbered so you always know what you are confirming.</Text>
+        </>
+      );
+    return (
+      <>
+        <Text style={styles.title}>What are you{"\n"}shopping for?</Text>
+        <View style={styles.grid}>
+          {categories.map((c) => (
+            <Pressable
+              key={c.key}
+              onPress={() => onDone(c.key)}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.choice, pressed && styles.choicePressed]}
+            >
+              <Ionicons name={c.icon} size={18} color={theme.colors.ink} />
+              <Text style={styles.choiceText}>{c.label}</Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={() => onDone("all")}
+            accessibilityRole="button"
+            style={({ pressed }) => [styles.choice, styles.choicePrimary, pressed && { transform: [{ scale: 0.98 }] }]}
+          >
+            <Text style={styles.choicePrimaryText}>Everything</Text>
+          </Pressable>
+        </View>
+      </>
+    );
   }
 
   return (
     <View style={styles.root}>
-      <View style={styles.top}>
-        <View style={styles.brandRow}>
-          <View style={styles.logo}>
-            <Ionicons name="bag-handle" size={16} color={theme.colors.backgroundDeep} />
-          </View>
-          <Text style={styles.brand}>{brand}</Text>
-        </View>
-        {!last && (
-          <Pressable onPress={onDone} hitSlop={10} accessibilityRole="button">
-            <Text style={styles.skip}>Skip</Text>
-          </Pressable>
-        )}
-      </View>
-
       <FlatList
         ref={listRef}
-        data={slides}
-        keyExtractor={(s) => s.key}
+        data={slides as unknown as Slide[]}
+        keyExtractor={(s) => s}
         horizontal
         pagingEnabled
+        bounces={false}
         showsHorizontalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={32}
         getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
-            <View style={styles.visual}>{item.visual(visual)}</View>
-            <View style={styles.copy}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.body}>{item.body}</Text>
-            </View>
+            {renderVisual(item)}
+            <View style={styles.copy}>{renderCopy(item)}</View>
           </View>
         )}
       />
 
+      <View style={styles.topRow} pointerEvents="box-none">
+        <View style={styles.brandPill}>
+          <View style={styles.logo}>
+            <Ionicons name="bag-handle" size={13} color={theme.colors.accent} />
+          </View>
+          <Text style={styles.brand}>{brand}</Text>
+        </View>
+        {!last && (
+          <Pressable onPress={() => onDone("all")} hitSlop={12} accessibilityRole="button" style={styles.skipPill}>
+            <Text style={styles.skip}>Skip</Text>
+          </Pressable>
+        )}
+      </View>
+
       <View style={styles.footer}>
         <View style={styles.progress} accessibilityLabel={`Step ${index + 1} of ${slides.length}`}>
           {slides.map((s, i) => (
-            <View key={s.key} style={[styles.step, i === index && styles.stepActive]} />
+            <Pressable key={s} onPress={() => goTo(i)} hitSlop={6}>
+              <View style={[styles.step, i === index && styles.stepActive]} />
+            </Pressable>
           ))}
         </View>
-        <Pressable
-          onPress={next}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.cta, pressed && { transform: [{ scale: 0.98 }] }]}
-        >
-          <Text style={styles.ctaText}>{last ? "Get started" : "Next"}</Text>
-          <Ionicons name="arrow-forward" size={18} color={theme.colors.backgroundDeep} />
-        </Pressable>
+        {!last && (
+          <Pressable
+            onPress={() => goTo(index + 1)}
+            accessibilityRole="button"
+            accessibilityLabel="Next"
+            style={({ pressed }) => [styles.next, pressed && { transform: [{ scale: 0.96 }] }]}
+          >
+            <Ionicons name="arrow-forward" size={22} color={theme.colors.onInk} />
+          </Pressable>
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.background },
-  top: {
+  root: { flex: 1, backgroundColor: theme.colors.bg },
+  slide: { flex: 1, alignItems: "center" },
+  visualBox: { alignItems: "center", justifyContent: "center" },
+  fill: { width: "100%", height: "100%" },
+  copy: { width: "100%", maxWidth: 480, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg, alignItems: "center" },
+  title: { color: theme.colors.ink, fontSize: 32, lineHeight: 38, fontWeight: "800", letterSpacing: -0.9, textAlign: "center" },
+  body: { color: theme.colors.muted, fontSize: 16, lineHeight: 23, textAlign: "center", marginTop: 14, maxWidth: 340 },
+  topRow: {
+    position: "absolute",
+    top: 58,
+    left: 0,
+    right: 0,
+    paddingHorizontal: theme.spacing.md,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: 60,
-    paddingBottom: theme.spacing.sm,
-    width: "100%",
-    maxWidth: 560,
     alignSelf: "center",
+    maxWidth: 560,
+    width: "100%",
   },
-  brandRow: { flexDirection: "row", alignItems: "center", gap: theme.spacing.sm },
-  logo: { width: 28, height: 28, borderRadius: 8, backgroundColor: theme.colors.accent, alignItems: "center", justifyContent: "center" },
-  brand: { color: theme.colors.text, fontSize: 18, fontWeight: "700", letterSpacing: -0.3 },
-  skip: { color: theme.colors.muted, fontSize: 15, fontWeight: "500" },
-  slide: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: theme.spacing.xl },
-  visual: { flex: 1, alignItems: "center", justifyContent: "center", maxHeight: 420 },
-  copy: { width: "100%", maxWidth: 480, paddingBottom: theme.spacing.lg },
-  title: { color: theme.colors.text, fontSize: 34, lineHeight: 40, fontWeight: "700", letterSpacing: -0.8 },
-  body: { color: theme.colors.muted, fontSize: 16, lineHeight: 24, marginTop: theme.spacing.md, maxWidth: 420 },
+  brandPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    backgroundColor: theme.colors.card,
+    paddingVertical: 6,
+    paddingLeft: 6,
+    paddingRight: 14,
+    borderRadius: 999,
+  },
+  logo: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.colors.ink, alignItems: "center", justifyContent: "center" },
+  brand: { color: theme.colors.ink, fontSize: 16, fontWeight: "700", letterSpacing: -0.3 },
+  skipPill: { backgroundColor: theme.colors.card, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999 },
+  skip: { color: theme.colors.ink, fontSize: 15, fontWeight: "600" },
   footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: theme.spacing.xl,
-    paddingBottom: 48,
+    paddingBottom: 44,
+    paddingTop: 12,
     width: "100%",
     maxWidth: 560,
     alignSelf: "center",
+    minHeight: 120,
   },
   progress: { flexDirection: "row", gap: 6 },
-  step: { width: 8, height: 4, borderRadius: 2, backgroundColor: theme.colors.border },
-  stepActive: { width: 24, backgroundColor: theme.colors.accent },
-  cta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    backgroundColor: theme.colors.accent,
-    paddingVertical: 15,
-    paddingHorizontal: 26,
-    borderRadius: 999,
-  },
-  ctaText: { color: theme.colors.backgroundDeep, fontSize: 16, fontWeight: "700" },
-  pickBadge: {
+  step: { width: 8, height: 6, borderRadius: 3, backgroundColor: theme.colors.border },
+  stepActive: { width: 28, backgroundColor: theme.colors.ink },
+  next: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.colors.ink, alignItems: "center", justifyContent: "center" },
+  blob: { position: "absolute", backgroundColor: theme.colors.accentSoft },
+  pickCard: { backgroundColor: theme.colors.card, borderRadius: 24, padding: 18, borderWidth: 2, borderColor: theme.colors.accent },
+  pickBag: {
     position: "absolute",
-    top: -10,
-    right: -10,
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    bottom: -18,
+    alignSelf: "center",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: theme.colors.accent,
+    borderWidth: 3,
+    borderColor: theme.colors.bg,
     alignItems: "center",
     justifyContent: "center",
-    borderWidth: 3,
-    borderColor: theme.colors.background,
   },
-  pickBadgeText: { color: theme.colors.backgroundDeep, fontWeight: "800", fontSize: 13 },
-  ring: { position: "absolute", borderWidth: 1, borderColor: theme.colors.border, backgroundColor: theme.colors.accentSoft },
-  stockPill: {
+  pickBagText: { color: theme.colors.ink, fontWeight: "800", fontSize: 15 },
+  ring: { position: "absolute", borderWidth: 1, borderColor: theme.colors.border },
+  ringInner: { backgroundColor: theme.colors.accentSoft, borderColor: "transparent" },
+  heroCard: { backgroundColor: theme.colors.card, borderRadius: 28, padding: 22 },
+  lastPill: {
     position: "absolute",
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: theme.colors.accent,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: 5,
+    backgroundColor: theme.colors.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 999,
   },
-  stockPillText: { color: theme.colors.backgroundDeep, fontWeight: "700", fontSize: 13 },
+  lastPillText: { color: theme.colors.onInk, fontWeight: "700", fontSize: 13 },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12, marginTop: 22, width: "100%" },
+  choice: {
+    flexGrow: 1,
+    flexBasis: "45%",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.sm,
+    paddingVertical: 15,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.card,
+  },
+  choicePressed: { borderColor: theme.colors.accent, transform: [{ scale: 0.98 }] },
+  choiceText: { color: theme.colors.ink, fontSize: 16, fontWeight: "600" },
+  choicePrimary: { backgroundColor: theme.colors.ink, borderColor: theme.colors.ink },
+  choicePrimaryText: { color: theme.colors.onInk, fontSize: 16, fontWeight: "700" },
 });
