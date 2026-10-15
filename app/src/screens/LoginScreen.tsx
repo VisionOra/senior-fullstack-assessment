@@ -30,6 +30,7 @@ export default function LoginScreen({ onLoggedIn, onBack }: Props) {
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
 
   const emailError = touched && !EMAIL_RE.test(email.trim()) ? "Enter a valid email address." : null;
@@ -93,10 +94,17 @@ export default function LoginScreen({ onLoggedIn, onBack }: Props) {
               ))}
             </View>
 
-            <Text style={styles.label}>Email</Text>
-            <View style={[styles.field, focused === "email" && styles.fieldFocused, emailError && styles.fieldError]}>
-              <Ionicons name="mail-outline" size={18} color={focused === "email" ? theme.colors.ink : theme.colors.subtle} />
-              <TextInput
+            <Pressable
+              onPress={() => emailRef.current?.focus()}
+              style={[styles.field, focused === "email" && styles.fieldFocused, emailError && styles.fieldError]}
+            >
+              <View style={[styles.fieldIcon, focused === "email" && styles.fieldIconFocused]}>
+                <Ionicons name="mail-outline" size={18} color={focused === "email" ? theme.colors.onInk : theme.colors.ink} />
+              </View>
+              <View style={styles.fieldBody}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <TextInput
+                ref={emailRef}
                 style={styles.input}
                 value={email}
                 onChangeText={setEmail}
@@ -109,16 +117,23 @@ export default function LoginScreen({ onLoggedIn, onBack }: Props) {
                 textContentType="emailAddress"
                 returnKeyType="next"
                 onSubmitEditing={() => passwordRef.current?.focus()}
-                placeholderTextColor={theme.colors.subtle}
+                placeholderTextColor="#A3AAB8"
                 placeholder="you@example.com"
-              />
-            </View>
+                />
+              </View>
+            </Pressable>
             {emailError && <Text style={styles.fieldHint}>{emailError}</Text>}
 
-            <Text style={styles.label}>Password</Text>
-            <View style={[styles.field, focused === "password" && styles.fieldFocused, passwordError && styles.fieldError]}>
-              <Ionicons name="lock-closed-outline" size={18} color={focused === "password" ? theme.colors.ink : theme.colors.subtle} />
-              <TextInput
+            <Pressable
+              onPress={() => passwordRef.current?.focus()}
+              style={[styles.field, focused === "password" && styles.fieldFocused, passwordError && styles.fieldError]}
+            >
+              <View style={[styles.fieldIcon, focused === "password" && styles.fieldIconFocused]}>
+                <Ionicons name="lock-closed-outline" size={18} color={focused === "password" ? theme.colors.onInk : theme.colors.ink} />
+              </View>
+              <View style={styles.fieldBody}>
+                <Text style={styles.fieldLabel}>Password</Text>
+                <TextInput
                 ref={passwordRef}
                 style={styles.input}
                 value={password}
@@ -130,18 +145,19 @@ export default function LoginScreen({ onLoggedIn, onBack }: Props) {
                 textContentType={mode === "login" ? "password" : "newPassword"}
                 returnKeyType="go"
                 onSubmitEditing={submit}
-                placeholderTextColor={theme.colors.subtle}
+                placeholderTextColor="#A3AAB8"
                 placeholder="At least 6 characters"
-              />
+                />
+              </View>
               <Pressable
                 onPress={() => setShowPassword((v) => !v)}
                 hitSlop={10}
                 accessibilityRole="button"
                 accessibilityLabel={showPassword ? "Hide password" : "Show password"}
               >
-                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={18} color={theme.colors.muted} />
+                <Ionicons name={showPassword ? "eye-off-outline" : "eye-outline"} size={20} color={theme.colors.muted} />
               </Pressable>
-            </View>
+            </Pressable>
             {passwordError && <Text style={styles.fieldHint}>{passwordError}</Text>}
 
             {error && (
@@ -213,22 +229,32 @@ const styles = StyleSheet.create({
   tabActive: { backgroundColor: theme.colors.card, shadowColor: theme.colors.ink, shadowOpacity: 0.08, shadowRadius: 6, shadowOffset: { width: 0, height: 2 } },
   tabText: { color: theme.colors.muted, fontSize: 14, fontWeight: "500" },
   tabTextActive: { color: theme.colors.ink, fontWeight: "700" },
-  label: { color: theme.colors.ink, fontSize: 13, fontWeight: "600", marginBottom: theme.spacing.sm },
   field: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 12,
     backgroundColor: theme.colors.card,
-    borderRadius: theme.radius + 2,
+    borderRadius: 18,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    paddingHorizontal: 14,
-    marginBottom: theme.spacing.md,
+    borderColor: "transparent",
+    paddingLeft: 10,
+    paddingRight: 16,
+    paddingVertical: 10,
+    marginBottom: 12,
+    shadowColor: theme.colors.ink,
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   fieldFocused: { borderColor: theme.colors.ink },
-  fieldError: { borderColor: theme.colors.danger, marginBottom: theme.spacing.xs },
-  fieldHint: { color: theme.colors.danger, fontSize: 12, marginBottom: theme.spacing.md },
-  input: { flex: 1, color: theme.colors.ink, fontSize: 16, paddingVertical: 15, outlineStyle: "none" } as any,
+  fieldError: { borderColor: theme.colors.danger, marginBottom: 6 },
+  fieldIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: theme.colors.bg, alignItems: "center", justifyContent: "center" },
+  fieldIconFocused: { backgroundColor: theme.colors.ink },
+  fieldBody: { flex: 1 },
+  fieldLabel: { color: theme.colors.muted, fontSize: 12, fontWeight: "600" },
+  fieldHint: { color: theme.colors.danger, fontSize: 12, marginBottom: 12, marginLeft: 6 },
+  input: { color: theme.colors.ink, fontSize: 16, fontWeight: "500", paddingVertical: 2, paddingHorizontal: 0, marginTop: 2, outlineStyle: "none" } as any,
   alert: {
     flexDirection: "row",
     alignItems: "center",
