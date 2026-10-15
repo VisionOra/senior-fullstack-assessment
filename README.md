@@ -42,6 +42,7 @@ Users log in, see a short list of items, pick one or two, and the stock behind t
 # database
 docker compose up -d
 psql postgresql://assessment:assessment@localhost:5432/assessment -f backend/schema.sql
+# without a local psql: docker compose exec -T db psql -U assessment -d assessment < backend/schema.sql
 
 # backend
 cd backend
@@ -50,6 +51,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python sync.py                     # pull products into Postgres (safe to re-run)
 uvicorn main:app --reload          # http://localhost:8000/health
+# tests (database must be running): pytest
 
 # app
 cd ../app
