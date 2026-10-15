@@ -38,6 +38,7 @@ const MAX_SELECTED = 2;
 const MAX_WIDTH = 1080;
 const LOW_STOCK = 5;
 const LOW_FILTER = 50;
+const BAR_HIDDEN = 160;
 const promoTints = ["#F1E5C6", "#E3E7EF", theme.colors.tile];
 
 function columnsFor(width: number) {
@@ -86,9 +87,26 @@ export default function ItemsScreen({ email, initialCategory, onLogout }: Props)
   const slotRefs = useRef<(View | null)[]>([]);
   const progress = useRef(new Animated.Value(0)).current;
   const bump = useRef(new Animated.Value(1)).current;
+  const barY = useRef(new Animated.Value(BAR_HIDDEN)).current;
+  const barYNow = useRef(BAR_HIDDEN);
   const reduceMotion = useRef(false);
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
+
+  useEffect(() => {
+    const id = barY.addListener(({ value }) => (barYNow.current = value));
+    return () => barY.removeListener(id);
+  }, [barY]);
+
+  const hasPicks = selected.length > 0;
+  useEffect(() => {
+    Animated.spring(barY, {
+      toValue: hasPicks ? 0 : BAR_HIDDEN,
+      friction: 9,
+      tension: 80,
+      useNativeDriver: false,
+    }).start();
+  }, [hasPicks, barY]);
 
   useEffect(() => {
     AccessibilityInfo.isReduceMotionEnabled().then((v) => (reduceMotion.current = v));
@@ -124,7 +142,8 @@ export default function ItemsScreen({ email, initialCategory, onLogout }: Props)
       const ox = origin?.x ?? 0;
       const oy = origin?.y ?? 0;
       progress.setValue(0);
-      setFlight({ id, uri, from: { ...from, x: from.x - ox, y: from.y - oy }, to: { ...to, x: to.x - ox, y: to.y - oy } });
+      const settledY = to.y - barYNow.current;
+      setFlight({ id, uri, from: { ...from, x: from.x - ox, y: from.y - oy }, to: { ...to, x: to.x - ox, y: settledY - oy } });
       Animated.timing(progress, { toValue: 1, duration: 620, easing: Easing.bezier(0.45, 0, 0.2, 1), useNativeDriver: true }).start(() => {
         setFlight(null);
         bump.setValue(0.9);
@@ -424,6 +443,7 @@ export default function ItemsScreen({ email, initialCategory, onLogout }: Props)
       </View>
 
       <View style={styles.barWrap} pointerEvents="box-none">
+        <Animated.View style={{ width: "100%", alignItems: "center", transform: [{ translateY: barY }] }}>
         <Animated.View style={[styles.bar, { transform: [{ scale: bump }] }]}>
           <View style={styles.thumbs}>
             {Array.from({ length: MAX_SELECTED }).map((_, i) => {
@@ -446,7 +466,7 @@ export default function ItemsScreen({ email, initialCategory, onLogout }: Props)
               {selected.length} of {MAX_SELECTED} in your bag
             </Text>
             <Text style={styles.barHint} numberOfLines={1}>
-              {full ? "Limit reached" : selected.length ? "Add one more or confirm" : "Tap the bag to pick"}
+              {full ? "Limit reached" : "Add one more or confirm"}
             </Text>
           </View>
           <Pressable
@@ -458,6 +478,7 @@ export default function ItemsScreen({ email, initialCategory, onLogout }: Props)
           >
             {busy ? <ActivityIndicator color={theme.colors.ink} /> : <Text style={styles.buttonText}>Confirm</Text>}
           </Pressable>
+        </Animated.View>
         </Animated.View>
       </View>
 
