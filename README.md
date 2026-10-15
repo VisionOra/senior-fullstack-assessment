@@ -41,17 +41,16 @@ Users log in, see a short list of items, pick one or two, and the stock behind t
 ```bash
 # database
 docker compose up -d
-psql postgresql://assessment:assessment@localhost:5432/assessment -f backend/schema.sql
-# without a local psql: docker compose exec -T db psql -U assessment -d assessment < backend/schema.sql
 
 # backend
 cd backend
 cp .env.example .env
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+python migrate.py                  # create or upgrade tables (safe to re-run)
 python sync.py                     # pull products into Postgres (safe to re-run)
 uvicorn main:app --reload          # http://localhost:8000/health
-# tests (database must be running): pytest
+# tests use a separate assessment_test database: pytest
 
 # app
 cd ../app
