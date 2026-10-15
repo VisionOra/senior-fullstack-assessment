@@ -79,7 +79,7 @@ def login(body: Credentials):
             "SELECT id, password_hash FROM users WHERE email = %s", (body.email.lower(),)
         )
         row = cur.fetchone()
-    if not row or not verify_password(body.password, row[1]):
+    if not verify_password(body.password, row[1] if row else None):
         raise api_error(401, "invalid_credentials", "Wrong email or password")
     return {"token": create_token(row[0])}
 
@@ -127,11 +127,15 @@ def create_selection(body: SelectionIn, user_id: int = Depends(current_user_id))
                 409, "sold_out", f"SKU(s) no longer available: {', '.join(map(str, sold_out))}"
             )
         try:
-            cur.executemany(
-                "INSERT INTO selections (user_id, sku_id) VALUES (%s, %s)",
-                [(user_id, i) for i in ids],
+            cur.execute(
+                "INSERT INTO selections (user_id, sku_id) SELECT %s, unnest(%s::bigint[])",
+                (user_id, ids),
             )
         except UniqueViolation:
             raise api_error(409, "already_selected", "You already selected one of these SKUs")
-        cur.execute("UPDATE skus SET quantity = quantity - 1 WHERE id = ANY(%s)", (ids,))
-    return {"sku_ids": ids}
+        cur.execute(
+            "UPDATE skus SET quantity = quantity - 1 WHERE id = ANY(%s) RETURNING id, quantity",
+            (ids,),
+        )
+        remaining = dict(cur.fetchall())
+    return {"selected": [{"sku_id": i, "remaining": remaining[i]} for i in ids]}

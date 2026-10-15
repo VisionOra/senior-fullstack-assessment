@@ -19,7 +19,13 @@ def hash_password(password: str) -> str:
     return pwd.hash(password)
 
 
-def verify_password(password: str, hashed: str) -> bool:
+DUMMY_HASH = pwd.hash("timing-equalizer")
+
+
+def verify_password(password: str, hashed: str | None) -> bool:
+    if hashed is None:
+        pwd.verify(password, DUMMY_HASH)
+        return False
     return pwd.verify(password, hashed)
 
 
