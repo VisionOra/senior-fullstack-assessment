@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field
 from psycopg.errors import UniqueViolation
 from psycopg.rows import dict_row
@@ -22,6 +24,18 @@ app = FastAPI(title="Assessment API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
 )
+
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(_: Request, exc: RequestValidationError):
+    first = exc.errors()[0]
+    field = ".".join(str(p) for p in first["loc"] if p != "body")
+    return JSONResponse(
+        status_code=422,
+        content={"detail": {"code": "validation_error", "message": f"{field}: {first['msg']}"}},
+    )
+
 
 SKU_COLUMNS = "id, title, price, thumbnail, quantity"
 
