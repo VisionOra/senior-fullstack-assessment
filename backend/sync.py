@@ -14,6 +14,7 @@ def sync_products() -> int:
             p["title"],
             p.get("price"),
             p.get("thumbnail"),
+            p.get("category"),
             p["stock"] if p.get("stock") is not None else DEFAULT_QUANTITY,
         )
         for p in products
@@ -21,12 +22,13 @@ def sync_products() -> int:
     with get_conn() as conn, conn.cursor() as cur:
         cur.executemany(
             """
-            INSERT INTO skus (external_id, title, price, thumbnail, quantity)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO skus (external_id, title, price, thumbnail, category, quantity)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (external_id) DO UPDATE
                SET title = EXCLUDED.title,
                    price = EXCLUDED.price,
-                   thumbnail = EXCLUDED.thumbnail
+                   thumbnail = EXCLUDED.thumbnail,
+                   category = EXCLUDED.category
             """,
             rows,
         )

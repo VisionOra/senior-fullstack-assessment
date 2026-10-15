@@ -14,9 +14,12 @@ CREATE TABLE IF NOT EXISTS skus (
     title       text NOT NULL,
     price       numeric(10, 2),
     thumbnail   text,
+    category    text,
     quantity    integer NOT NULL DEFAULT 2 CHECK (quantity >= 0),
     created_at  timestamptz NOT NULL DEFAULT now()
 );
+
+ALTER TABLE skus ADD COLUMN IF NOT EXISTS category text;
 
 CREATE TABLE IF NOT EXISTS selections (
     id         bigserial PRIMARY KEY,

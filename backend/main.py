@@ -37,7 +37,7 @@ async def validation_error(_: Request, exc: RequestValidationError):
     )
 
 
-SKU_COLUMNS = "id, title, price, thumbnail, quantity"
+SKU_COLUMNS = "id, title, price, thumbnail, category, quantity"
 
 
 class Credentials(BaseModel):
