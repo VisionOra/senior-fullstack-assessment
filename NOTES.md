@@ -21,3 +21,6 @@
 - Say whether a user may select the same SKU twice, and whether the 1-2 limit is per request or lifetime.
 - `/sync` access is undefined without roles; I left it open to any logged-in user.
 - dummyjson always returns `stock`, so the "default to 2" branch is never exercised by the real API.
+
+## AI tool usage
+I used an AI coding assistant to help write and review this code. I reviewed the result and can walk through it.

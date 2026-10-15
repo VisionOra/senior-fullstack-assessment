@@ -1,4 +1,3 @@
-"""Pull products from the public API into skus. Idempotent: `python sync.py`."""
 import httpx
 
 from db import close_pool, get_conn, open_pool
@@ -19,7 +18,6 @@ def sync_products() -> int:
         )
         for p in products
     ]
-    # Quantity is only set on first insert so a re-sync never restocks sold items.
     with get_conn() as conn, conn.cursor() as cur:
         cur.executemany(
             """

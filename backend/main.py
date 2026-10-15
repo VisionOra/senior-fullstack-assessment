@@ -1,4 +1,3 @@
-"""Assessment API: auth, SKU sync, listing and selections."""
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
@@ -100,9 +99,6 @@ def create_selection(body: SelectionIn, user_id: int = Depends(current_user_id))
     ids = sorted(set(body.sku_ids))
     if len(ids) != len(body.sku_ids):
         raise api_error(422, "duplicate_sku", "Each SKU can only be selected once")
-    # One transaction. Row locks are taken in id order so concurrent requests
-    # can't deadlock, and the quantity is re-checked under the lock so two users
-    # can never both take the last unit.
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
             "SELECT id, quantity FROM skus WHERE id = ANY(%s) ORDER BY id FOR UPDATE",

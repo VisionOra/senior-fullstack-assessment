@@ -18,7 +18,6 @@ export default function ItemsScreen({ onLogout }: Props) {
     try {
       const data = await api<Sku[]>("/skus");
       setSkus(data);
-      // Drop selections that sold out in the meantime.
       setSelected((prev) => prev.filter((id) => data.some((s) => s.id === id)));
     } catch (e: any) {
       if (e.status === 401) onLogout();
